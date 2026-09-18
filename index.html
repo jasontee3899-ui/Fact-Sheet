@@ -364,7 +364,7 @@ textarea{ resize:vertical; min-height:44px; line-height:1.5; }
   <!-- ============ PREVIEW ============ -->
   <div class="main">
     <div class="toolbar no-print">
-      <div class="name" id="tb_name">Property Type and General Descriptions</div>
+      <div class="name" id="tb_name">Untitled Property</div>
       <div class="btns">
         <button class="btn secondary" onclick="saveRecord()">Save as (json)</button>
         <button class="btn" onclick="openPrintModal()">Print / Save as PDF</button>
@@ -952,8 +952,8 @@ function paginatePhotosByOrientation(photos){
 
 // ---------------- RENDER ----------------
 function render(){
-  const title = val('f_title') || 'Property Type and General Descriptions';
-  document.getElementById('tb_name').textContent = title.split('\n')[0];
+  const title = val('f_title') || '';
+  document.getElementById('tb_name').textContent = title.split('\n')[0] || 'Untitled Property';
 
   const groupPageCount = state.groups.length===0 ? 1 : state.groups.reduce((sum,g)=>sum + Math.max(1, paginatePhotosByOrientation(g.photos).length), 0);
   const totalPages = 2 + groupPageCount;
