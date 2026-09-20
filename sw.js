@@ -1,5 +1,5 @@
 // Service worker for Property Fact Sheet Generator
-const CACHE_NAME = 'fact-sheet-generator-v2';
+const CACHE_NAME = 'fact-sheet-generator-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

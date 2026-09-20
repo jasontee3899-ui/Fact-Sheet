@@ -420,8 +420,8 @@ let state = {
     {type:"text", label:"CCC / CF Status", text:"With CCC / CF"}
   ],
   metrics: [
-    {type:"auto", areaType:"builtup"},
-    {type:"auto", areaType:"land"}
+    {type:"auto", areaType:"builtup", visible:true},
+    {type:"auto", areaType:"land", visible:true}
   ],
   features: [
     {title:"Rare 20,000+ sf single platform warehouse", desc:"A configuration virtually unseen elsewhere in the area."},
@@ -710,6 +710,7 @@ function addSpec(type){
 function metricLines(){
   return state.metrics.map(m=>{
     if(m.type==='auto'){
+      if(m.visible===false) return '';
       const computed = computeAutoPsf(m.areaType);
       if(computed===null) return '';
       const label = m.areaType==='builtup' ? 'built-up' : 'land area';
@@ -760,7 +761,12 @@ function renderMetricList(){
       const specLabel = m.areaType==='builtup' ? 'Total Built-up Area' : 'Total Land Area';
       const computed = computeAutoPsf(m.areaType);
       const shown = computed!==null ? fmtPsf(computed) : '[XXX]';
+      const isVisible = m.visible !== false;
       card.innerHTML = `${metricHeadHtml(i, 'AUTO · RM PSF ('+label.toUpperCase()+')')}
+        <label style="display:flex;align-items:center;gap:6px;margin:0 0 6px 0;font-weight:600;color:${isVisible ? 'var(--accent)' : 'var(--slate)'};">
+          <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="state.metrics[${i}].visible=this.checked; renderMetricList(); render();" style="width:auto;">
+          Show this line on the sheet
+        </label>
         <div style="font-size:10.5px;color:#5B6572;">asking price ÷ ${specLabel} → <i>≈ RM ${shown} psf (${label.toLowerCase()})</i></div>`;
     } else {
       card.innerHTML = `${metricHeadHtml(i, 'CUSTOM LINE')}
@@ -1185,13 +1191,34 @@ function buildRecordJSON(){
   return JSON.stringify({ savedAt: new Date().toISOString(), fields: fields, state: state });
 }
 function suggestedRecordFilename(){
-  const title = val('f_title') || 'property-record';
-  const stamp = new Date().toISOString().slice(0,10);
-  return title.replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase() + '_' + stamp + '.json';
+  const now = new Date();
+  const datePart = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+  const timePart = now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit', hour12:false}).replace(':','-'); // HH-MM
+  return `Fact Sheet_${datePart}_${timePart}.json`;
 }
 function setRecordStatus(text){
   const status = document.getElementById('recordStatus');
   if(status) status.textContent = text;
+}
+function showSaveToast(filename){
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2,'0');
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const yyyy = now.getFullYear();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const min = String(now.getMinutes()).padStart(2,'0');
+  const stamp = `${dd}/${mm}/${yyyy} (${hh}${min})`;
+  let toast = document.getElementById('saveToast');
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = 'saveToast';
+    toast.style.cssText = 'position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#182233; color:#fff; padding:12px 20px; border-radius:6px; font-family:Inter,sans-serif; font-size:13px; font-weight:600; box-shadow:0 4px 16px rgba(0,0,0,0.3); z-index:5000; opacity:0; transition:opacity 0.25s;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = '✓ Saved as ' + filename + ' — ' + stamp;
+  toast.style.opacity = '1';
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(()=>{ toast.style.opacity = '0'; }, 4000);
 }
 
 async function saveRecord(){
@@ -1209,6 +1236,7 @@ async function saveRecord(){
       await writable.write(json);
       await writable.close();
       setRecordStatus('✓ Saved to linked file: ' + recordFileHandle.name + ' — future "Save it" clicks write here automatically.');
+      showSaveToast(recordFileHandle.name);
       renderRecordLinkUI();
       return;
     }catch(err){
@@ -1225,6 +1253,7 @@ async function saveRecord(){
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
   setRecordStatus('Downloaded: ' + filename + ' (your browser doesn\'t support linked-file saving, so this went to your Downloads folder).');
+  showSaveToast(filename);
 }
 
 async function chooseNewSaveLocation(){
